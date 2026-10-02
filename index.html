@@ -83,7 +83,7 @@
   <aside class="sidebar">
     <div class="app-head">
       <div class="brand-row">
-        <div class="brand"><div class="brand-mark">S</div><div>Spektra Ponuky V4.1<small>kalkulácia • ponuka • archív</small></div></div>
+        <div class="brand"><div class="brand-mark">S</div><div>Spektra Ponuky V4.2<small>kalkulácia • ponuka • archív</small></div></div>
         <div class="status-pill" id="uiStatus">Rozpracovaná</div>
       </div>
     </div>
@@ -122,6 +122,7 @@
             <div class="field"><label>DPH</label><select data-field="vatRate"><option value="23">23 %</option><option value="20">20 %</option><option value="10">10 %</option><option value="0">0 %</option></select></div>
             <div class="field full"><label>Zariadenie z katalógu</label><select data-field="modelKey" id="modelSelect"></select></div>
             <div class="field" id="tankField"><label>Zásobník TÚV</label><select data-field="tankSize"><option value="200">200 l</option><option value="300">300 l</option><option value="none">Bez zásobníka</option></select></div>
+            <div class="field"><label>Program dotácie</label><select data-field="subsidyProgram"><option value="">Bez dotácie</option><option value="Zelená domácnostiam">Zelená domácnostiam</option><option value="Obnov dom">Obnov dom</option><option value="Iná dotácia / poukážka">Iná dotácia / poukážka</option></select></div>
             <div class="field"><label>Dotácia / poukážka €</label><input type="number" min="0" step="10" data-field="subsidyGross"></div>
             <div class="field full"><button class="btn btn-primary" id="loadPackage">Načítať štandardnú zostavu</button><div class="hint danger-hint">Načítanie zostavy nahradí aktuálne položky ponuky.</div></div>
           </div>
@@ -237,7 +238,7 @@
         <tbody id="outItems"></tbody>
       </table>
       <div class="sum-area"><div class="sum-box"><div class="sum-line"><span>Spolu bez DPH:</span><strong id="sumNet"></strong></div><div class="sum-line"><span>DPH <span id="vatLabel"></span>:</span><strong id="sumVat"></strong></div><div class="sum-line discount" id="discountRow"><span>Zľava s DPH:</span><strong id="sumDiscount"></strong></div><div class="sum-line grand"><span>CELKOM S DPH:</span><span id="sumGross"></span></div></div></div>
-      <section class="subsidy" id="subsidyBox"><h3>Predpokladané uplatnenie poukážky / dotácie</h3><p>Celková zmluvná cena zostáva uvedená vyššie. Výsledná platba zákazníka závisí od schválenia a platnosti poukážky a splnenia podmienok programu.</p><div class="sub-line"><span>Hodnota poukážky:</span><strong id="subsidyValue"></strong></div><div class="sub-line final"><span>Predpokladaná platba zákazníka:</span><strong id="customerPayment"></strong></div></section>
+      <section class="subsidy" id="subsidyBox"><h3 id="subsidyTitle">Predpokladané uplatnenie dotácie / poukážky</h3><p>Celková zmluvná cena zostáva uvedená vyššie. Výsledná platba zákazníka závisí od schválenia, platnosti poukážky a splnenia podmienok príslušného programu.</p><div class="sub-line" id="subsidyProgramRow"><span>Program:</span><strong id="subsidyProgramValue"></strong></div><div class="sub-line"><span>Hodnota poukážky:</span><strong id="subsidyValue"></strong></div><div class="sub-line final"><span>Predpokladaná platba zákazníka:</span><strong id="customerPayment"></strong></div></section>
       <section class="scope-grid"><div class="scope"><h3>Zahrnuté v cene</h3><ul id="outIncluded"></ul></div><div class="scope"><h3>Nie je zahrnuté v cene</h3><ul id="outExcluded"></ul></div></section>
       <section class="conditions"><h3>Obchodné a realizačné podmienky</h3><ul id="outConditions"></ul><div class="note-box" id="outNote"></div><div class="legal-note">Cena zahŕňa výhradne položky a práce uvedené v tejto ponuke. Práce alebo materiál nad uvedený rozsah budú vykonané až po odsúhlasení zákazníkom a účtované samostatne. Záruka na zariadenie sa riadi podmienkami výrobcu a môže byť podmienená registráciou a pravidelným servisom.</div></section>
       <section class="signature-grid"><div class="signature"><div class="sig-line"></div><strong id="outPreparedBy"></strong><div>za Spektra Install s. r. o.</div></div><div class="signature" id="customerSignature"><div class="sig-line"></div><strong>Objednávateľ</strong><div>meno, dátum a podpis</div></div></section>
@@ -418,7 +419,7 @@ const PRICES = {
       id:uid(), no:generateNumber?nextOfferNo():'', date:todayISO(), validityDays:14, status:'Rozpracovaná',
       projectTitle:'Dodávka a montáž tepelného čerpadla',
       customerName:'', customerPhone:'', customerEmail:'', customerAddress:'', customerIco:'', customerVatId:'',
-      offerType:'hp', vatRate:23, modelKey:'midea_nature_12', tankSize:'300', subsidyGross:0, discountGross:0, advancePercent:50,
+      offerType:'hp', vatRate:23, modelKey:'midea_nature_12', tankSize:'300', subsidyProgram:'', subsidyGross:0, discountGross:0, advancePercent:50,
       catalogDiscountPercent:25, installersCount:2, installerHourlyRate:15, workHoursPerInstaller:0, vehicleCost:30,
       warehouseMonthly:1500, loanMonthly:600, otherMonthlyOverhead:0, monthlyJobs:8, monthlyTargetProfit:3000,
       heatedArea:'', heatLoss:'', waterTemp:50, heatingSystem:'Radiátory', persons:4, powerSupply:'Podľa zariadenia',
@@ -637,7 +638,7 @@ const PRICES = {
     }).join(''):'<tr><td colspan="6" class="center">Bez položiek</td></tr>';
     $('#sumNet').textContent=money(c.net); $('#sumVat').textContent=money(c.vat); $('#sumGross').textContent=money(c.gross); $('#vatLabel').textContent=`${rate} %`;
     $('#sumDiscount').textContent=`− ${money(c.discountGross)}`; $('#discountRow').classList.toggle('hide',!c.discountGross);
-    const showSub=asNumber(state.subsidyGross)>0; $('#subsidyBox').classList.toggle('hide',!showSub); $('#subsidyValue').textContent=`− ${money(state.subsidyGross)}`; $('#customerPayment').textContent=money(c.customerPayment);
+    const subsidyProgram=(state.subsidyProgram||'').trim(); const showSub=!!subsidyProgram||asNumber(state.subsidyGross)>0; $('#subsidyBox').classList.toggle('hide',!showSub); $('#subsidyProgramRow').classList.toggle('hide',!subsidyProgram); $('#subsidyProgramValue').textContent=subsidyProgram; $('#subsidyTitle').textContent=subsidyProgram?`Predpokladané uplatnenie – ${subsidyProgram}`:'Predpokladané uplatnenie dotácie / poukážky'; $('#subsidyValue').textContent=`− ${money(state.subsidyGross)}`; $('#customerPayment').textContent=money(c.customerPayment);
     $('#outIncluded').innerHTML=lines(state.includedScope).map(x=>`<li>${esc(x)}</li>`).join('');
     $('#outExcluded').innerHTML=lines(state.excludedScope).map(x=>`<li>${esc(x)}</li>`).join('');
     const cond=[`Platnosť cenovej ponuky: ${state.validityDays} dní, do ${formatDate(addDays(state.date,state.validityDays))}.`, `Predpokladaný termín dodania: ${state.deliveryTerm||'podľa dohody'}.`, `Predpokladaná dĺžka realizácie: ${state.workDuration||'podľa dohody'}.`, `Platobné podmienky: záloha ${asNumber(state.advancePercent)} %, doplatok ${state.paymentDue||'po odovzdaní diela'}.`, `Záruka na zariadenie: ${state.equipmentWarranty||'podľa podmienok výrobcu'}.`, `Záruka na montážne práce: ${asNumber(state.workWarrantyMonths)} mesiacov.`];
@@ -658,6 +659,7 @@ const PRICES = {
   }
 
   function syncForm(){
+    if(!('subsidyProgram' in state)) state.subsidyProgram=asNumber(state.subsidyGross)>0?'Dotácia / poukážka':'';
     state.catalogDiscountPercent=25; state.installersCount=2; state.installerHourlyRate=15; state.vehicleCost=30; state.warehouseMonthly=1500; state.loanMonthly=600;
     $$('[data-field]').forEach(el=>{
       const key=el.dataset.field; if(!(key in state)) return;
